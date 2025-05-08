@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site de Jogos</title>
+  <style>
+    body {
+      background-color: black;
+      color: red;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    h1, h2 {
+      color: gold;
+    }
+    input, button, select {
+      padding: 10px;
+      margin: 5px;
+      background-color: #111;
+      color: white;
+      border: 1px solid gold;
+    }
+    button {
+      cursor: pointer;
+    }
+    .admin-controls {
+      margin-top: 10px;
+    }
+    ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    li {
+      margin: 5px 0;
+    }
+    .remove-btn {
+      color: gold;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    let users = JSON.parse(localStorage.getItem("users")) || [];
+    let currentUser = null;
+    let games = JSON.parse(localStorage.getItem("games")) || ["Cyberpunk 2077", "Minecraft", "The Witcher 3"];
+
+    const app = document.getElementById("app");
+
+    function saveGames() {
+      localStorage.setItem("games", JSON.stringify(games));
+    }
+
+    function saveUsers() {
+      localStorage.setItem("users", JSON.stringify(users));
+    }
+
+    function resetAllData() {
+      if (confirm("Tem certeza que deseja resetar todos os dados de usuários e jogos?")) {
+        localStorage.removeItem("users");
+        localStorage.removeItem("games");
+        users = [];
+        games = ["Cyberpunk 2077", "Minecraft", "The Witcher 3"];
+        currentUser = null;
+        alert("Dados resetados com sucesso.");
+        renderLogin();
+      }
+    }
+
+    function renderLogin() {
+      app.innerHTML = `
+        <h1>Login</h1>
+        <input id="username" placeholder="Usuário" />
+        <input id="password" type="password" placeholder="Senha" />
+        <button onclick="login()">Entrar</button>
+        <p>Não tem uma conta? <a href="#" onclick="renderRegister()" style="color: gold;">Registre-se</a></p>
+        <p><a href="#" onclick="resetAllData()" style="color: red;">Resetar dados do sistema</a></p>
+      `;
+    }
+
+    function renderRegister() {
+      app.innerHTML = `
+        <h1>Registrar</h1>
+        <input id="newUsername" placeholder="Novo usuário" />
+        <input id="newPassword" type="password" placeholder="Nova senha" />
+        <select id="newRole">
+          <option value="user">Usuário</option>
+          <option value="admin">Administrador</option>
+        </select>
+        <button onclick="registerUser()">Registrar</button>
+        <p>Já tem uma conta? <a href="#" onclick="renderLogin()" style="color: gold;">Voltar ao login</a></p>
+      `;
+    }
+
+    function registerUser() {
+      const newUsername = document.getElementById("newUsername").value;
+      const newPassword = document.getElementById("newPassword").value;
+      const newRole = document.getElementById("newRole").value;
+
+      if (!newUsername || !newPassword) {
+        alert("Preencha todos os campos");
+        return;
+      }
+
+      if (users.some(u => u.username === newUsername)) {
+        alert("Usuário já existe");
+        return;
+      }
+
+      const hasAdmin = users.some(u => u.role === "admin");
+      if (newRole === "admin" && hasAdmin && (!currentUser || currentUser.role !== "admin")) {
+        alert("Apenas administradores podem registrar novos administradores.");
+        return;
+      }
+
+      users.push({ username: newUsername, password: newPassword, role: newRole });
+      saveUsers();
+      alert("Usuário registrado com sucesso!");
+      renderLogin();
+    }
+
+    function login() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const found = users.find(u => u.username === username && u.password === password);
+      if (found) {
+        currentUser = found;
+        renderApp();
+      } else {
+        alert("Credenciais inválidas");
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      renderLogin();
+    }
+
+    function addGame() {
+      const newGame = document.getElementById("newGame").value;
+      if (newGame && !games.includes(newGame)) {
+        games.push(newGame);
+        saveGames();
+        renderApp();
+      }
+    }
+
+    function removeGame(name) {
+      games = games.filter(game => game !== name);
+      saveGames();
+      renderApp();
+    }
+
+    function deleteUser(username) {
+      if (username === "admin") {
+        alert("Você não pode remover o administrador principal.");
+        return;
+      }
+      if (confirm(`Tem certeza que deseja deletar o usuário "${username}"?`)) {
+        users = users.filter(user => user.username !== username);
+        saveUsers();
+        renderApp();
+      }
+    }
+
+    function renderApp() {
+      let gameList = games.map(game => {
+        let removeBtn = currentUser.role === "admin" ? `<span class='remove-btn' onclick='removeGame("${game}")'>Remover</span>` : "";
+        return `<li>${game} ${removeBtn}</li>`;
+      }).join("");
+
+      let adminSection = "";
+      if (currentUser.role === "admin") {
+        const userList = users.filter(u => u.username !== currentUser.username).map(u => `<li>${u.username} (${u.role}) <span class='remove-btn' onclick='deleteUser(\"${u.username}\")'>Deletar usuário</span></li>`).join("");
+        adminSection = `
+          <div class="admin-controls">
+            <input id="newGame" placeholder="Novo jogo" />
+            <button onclick="addGame()">Cadastrar</button>
+            <h2>Usuários Registrados</h2>
+            <ul>${userList}</ul>
+            <button onclick="resetAllData()" style="background-color: red; color: gold;">Resetar Tudo</button>
+          </div>
+        `;
+      }
+
+      const searchValue = document.getElementById("search")?.value?.toLowerCase() || "";
+      const filteredGames = games.filter(g => g.toLowerCase().includes(searchValue));
+
+      app.innerHTML = `
+        <h1>Bem-vindo, ${currentUser.username}</h1>
+        <button onclick="logout()">Logout</button>
+
+        <h2>Pesquisar Jogos</h2>
+        <input id="search" oninput="renderApp()" placeholder="Digite o nome do jogo" value="${searchValue}" />
+
+        <h2>Lista de Jogos</h2>
+        <ul>
+          ${filteredGames.map(game => `<li>${game} ${currentUser.role === "admin" ? `<span class='remove-btn' onclick='removeGame(\"${game}\")'>Remover</span>` : ""}</li>`).join("")}
+        </ul>
+
+        ${adminSection}
+
+        <p style="color: gold;">Total de jogos: ${games.length}</p>
+      `;
+    }
+
+    renderLogin();
+  </script>
+</body>
+</html>
