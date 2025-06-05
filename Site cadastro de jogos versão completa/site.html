@@ -1,0 +1,583 @@
+
+   <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Game Empire</title>
+  <link rel="icon" type="image/png" href="logo.png" />
+  <style>
+    body {
+      background-color: #000;
+      color: #FFD700;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    body.light {
+      background-color: #f0f0f0;
+      color: #222;
+    }
+
+    #app {
+      background-color: #111;
+      border: 2px solid #FFD700;
+      padding: 40px 30px 30px;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 800px;
+      box-shadow: 0 0 30px red;
+      text-align: center;
+    }
+
+    body.light #app {
+      background-color: #fff;
+      border-color: #222;
+      box-shadow: 0 0 30px #aaa;
+    }
+
+    .logo {
+      width: 180px;
+      margin: 0 auto 25px;
+      display: block;
+      filter: drop-shadow(0 0 10px #FFD700) drop-shadow(0 0 15px red);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    h1, h2 {
+      color: #FFD700;
+      margin-bottom: 20px;
+    }
+
+    body.light h1, body.light h2 {
+      color: #222;
+    }
+
+    input, button, select, textarea {
+      padding: 12px;
+      margin: 10px 0;
+      width: 90%;
+      max-width: 400px;
+      background-color: #222;
+      color: #FFD700;
+      border: 1px solid red;
+      border-radius: 8px;
+      font-size: 1em;
+    }
+
+    body.light input, body.light select, body.light textarea {
+      background-color: #eee;
+      color: #222;
+      border: 1px solid #888;
+    }
+
+    button {
+      background-color: red;
+      color: #fff;
+      border: none;
+      transition: 0.3s;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #cc0000;
+    }
+
+    a {
+      color: #FFD700;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    body.light a {
+      color: #cc0000;
+    }
+
+    .remove-btn {
+      color: red;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+
+    ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    li {
+      padding: 10px;
+      background-color: #222;
+      margin: 5px 0;
+      border: 1px solid #FFD700;
+      border-radius: 6px;
+      text-align: left;
+    }
+
+    body.light li {
+      background-color: #f9f9f9;
+      border-color: #ccc;
+    }
+
+    .admin-controls, .reset-btn {
+      margin-top: 20px;
+    }
+
+    .stars span {
+      cursor: pointer;
+      color: gray;
+    }
+
+    .stars .filled {
+      color: gold;
+    }
+
+    .comment {
+      margin-top: 8px;
+      font-style: italic;
+    }
+
+    .history {
+      font-size: 0.9em;
+      margin-top: 5px;
+    }
+
+    .favorite {
+      color: red;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+
+    .profile-section {
+      margin-top: 20px;
+      border-top: 1px dashed #FFD700;
+      padding-top: 15px;
+    }
+
+    body.light .profile-section {
+      border-color: #aaa;
+    }
+
+    .bar-chart {
+  margin-top: 10px;
+}
+.bar-item {
+  margin-bottom: 6px;
+}
+.bar-item span {
+  display: inline-block;
+  width: 200px;
+}
+.bar {
+  display: inline-block;
+  height: 14px;
+  background-color: #ffcc00;
+  border-radius: 5px;
+}
+
+  </style>
+</head>
+<body>
+
+  <div id="app"></div>
+
+  
+
+  <script>
+    let users = JSON.parse(localStorage.getItem("users")) || [];
+    let games = JSON.parse(localStorage.getItem("games")) || ["Cyberpunk 2077", "Minecraft", "The Witcher 3"];
+    let currentUser = null;
+
+    const app = document.getElementById("app");
+
+    function saveGames() {
+      localStorage.setItem("games", JSON.stringify(games));
+    }
+
+    function saveUsers() {
+      localStorage.setItem("users", JSON.stringify(users));
+    }
+
+    function resetData() {
+      if (confirm("Tem certeza que deseja resetar todos os dados de usuários e jogos?")) {
+        localStorage.clear();
+        location.reload();
+      }
+    }
+
+    function renderLogin() {
+      app.innerHTML = `
+        <img src="logo.png" class="logo" alt="Logo Game Empire">
+        <h1>Login - Game Empire</h1>
+        <input id="username" placeholder="Usuário" />
+        <input id="password" type="password" placeholder="Senha" />
+        <button onclick="login()">Entrar</button>
+        <p>Não tem uma conta? <a onclick="renderRegister()">Registre-se</a></p>
+      `;
+      document.body.classList.remove("light");
+    }
+
+    function renderRegister() {
+      app.innerHTML = `
+        <img src="logo.png" class="logo" alt="Logo Game Empire">
+        <h1>Registrar - Game Empire</h1>
+        <input id="newUsername" placeholder="Novo usuário" />
+        <input id="newPassword" type="password" placeholder="Nova senha" />
+        <select id="newRole">
+          <option value="user">Usuário</option>
+          <option value="admin">Administrador</option>
+        </select>
+        <button onclick="registerUser()">Registrar</button>
+        <p>Já tem uma conta? <a onclick="renderLogin()">Voltar ao login</a></p>
+      `;
+    }
+
+    function registerUser() {
+      const newUsername = document.getElementById("newUsername").value;
+      const newPassword = document.getElementById("newPassword").value;
+      const newRole = document.getElementById("newRole").value;
+
+      if (!newUsername || !newPassword) return alert("Preencha todos os campos");
+      if (users.some(u => u.username === newUsername)) return alert("Usuário já existe");
+
+      const hasAdmin = users.some(u => u.role === "admin");
+      if (newRole === "admin" && hasAdmin && (!currentUser || currentUser.role !== "admin")) {
+        return alert("Apenas administradores podem criar outros administradores.");
+      }
+
+      users.push({ username: newUsername, password: newPassword, role: newRole, favorites: [], comments: {}, ratings: {}, history: [], theme: "dark", displayName: newUsername });
+      saveUsers();
+      alert("Usuário registrado com sucesso!");
+      renderLogin();
+    }
+
+    function login() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const found = users.find(u => u.username === username && u.password === password);
+      if (found) {
+        currentUser = found;
+        document.body.classList.toggle("light", currentUser.theme === "light");
+        renderApp();
+      } else {
+        alert("Credenciais inválidas");
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      renderLogin();
+    }
+
+    function addGame() {
+      const newGame = document.getElementById("newGame").value;
+      if (newGame && !games.includes(newGame)) {
+        games.push(newGame);
+        saveGames();
+        renderApp();
+      }
+    }
+
+    function removeGame(name) {
+      games = games.filter(game => game !== name);
+      saveGames();
+      renderApp();
+    }
+
+    function deleteUser(username) {
+      if (confirm(`Tem certeza que deseja deletar o usuário "${username}"?`)) {
+        users = users.filter(user => user.username !== username);
+        saveUsers();
+        renderApp();
+      }
+    }
+
+    function toggleFavorite(game) {
+      const favs = currentUser.favorites || [];
+      if (favs.includes(game)) {
+        currentUser.favorites = favs.filter(g => g !== game);
+      } else {
+        currentUser.favorites.push(game);
+      }
+      saveUsers();
+      renderApp();
+    }
+
+    function addComment(game) {
+      const comment = prompt("Digite seu comentário:");
+      if (comment) {
+        if (!currentUser.comments) currentUser.comments = {};
+        currentUser.comments[game] = comment;
+        saveUsers();
+        renderApp();
+      }
+    }
+
+    function rateGame(game, rating) {
+      if (!currentUser.ratings) currentUser.ratings = {};
+      currentUser.ratings[game] = rating;
+      saveUsers();
+      renderApp();
+    }
+
+    function recordHistory(game) {
+      if (!currentUser.history) currentUser.history = [];
+      if (!currentUser.history.includes(game)) currentUser.history.push(game);
+      saveUsers();
+    }
+
+    function changeTheme() {
+      currentUser.theme = currentUser.theme === "dark" ? "light" : "dark";
+      document.body.classList.toggle("light", currentUser.theme === "light");
+      saveUsers();
+    }
+
+    function updateDisplayName() {
+      const newName = prompt("Novo nome para exibição:", currentUser.displayName || currentUser.username);
+      if (newName) {
+        currentUser.displayName = newName;
+        saveUsers();
+        renderApp();
+      }
+    }
+
+    function renderApp() {
+      const searchValue = document.getElementById("search")?.value?.toLowerCase() || "";
+      const filteredGames = games.filter(g => g.toLowerCase().includes(searchValue));
+
+      let gameList = filteredGames.map(game => {
+        const isFav = currentUser.favorites?.includes(game);
+        const comment = currentUser.comments?.[game] || "";
+        const rating = currentUser.ratings?.[game] || 0;
+        recordHistory(game);
+        let stars = "";
+        for (let i = 1; i <= 5; i++) {
+          stars += `<span onclick="rateGame('${game}', ${i})" class="${i <= rating ? 'filled' : ''}">&#9733;</span>`;
+        }
+        return `<li>
+          <strong>${game}</strong>
+          <span class="favorite" onclick="toggleFavorite('${game}')">${isFav ? "❤️" : "🤍"}</span>
+          <span class="remove-btn" onclick="removeGame('${game}')" style="${currentUser.role !== 'admin' ? 'display:none' : ''}">Remover</span>
+          <div class="stars">${stars}</div>
+          <div class="comment">${comment ? "Comentário: " + comment : ""}</div>
+          <button onclick="addComment('${game}')">Comentar</button>
+        </li>`;
+      }).join("");
+
+      let adminSection = "";
+      if (currentUser.role === "admin") {
+  const userList = users.filter(u => u.username !== currentUser.username)
+    .map(u => `<li>${u.username} (${u.role}) <span class='remove-btn' onclick='deleteUser("${u.username}")'>Deletar usuário</span></li>`)
+    .join("");
+
+  const commentsList = users.flatMap(u => {
+    return Object.entries(u.comments || {}).map(([game, comment]) => {
+      return `
+        <li>
+          <strong>${u.username}</strong> comentou em <em>${game}</em>:<br>
+          "${comment}" 
+          <span class="remove-btn" onclick="removeComment('${u.username}', '${game}')">Remover</span>
+        </li>`;
+    });
+  }).join("") || "<li>Nenhum comentário</li>";
+
+  const gameList = games.map((g, i) => `
+    <li>
+      <span id="gameName-${i}">${g}</span>
+      <button onclick="editGame(${i})">Editar</button>
+    </li>
+  `).join("");
+
+  const stats = generateStats();
+
+  adminSection = `
+    <div class="admin-controls">
+      <h2>📊 Dashboard de Estatísticas</h2>
+      <ul>
+        <li>Total de usuários: <strong>${stats.totalUsers}</strong></li>
+        <li>Total de administradores: <strong>${stats.totalAdmins}</strong></li>
+        <li>Total de usuários comuns: <strong>${stats.totalRegulars}</strong></li>
+        <li>Total de jogos cadastrados: <strong>${stats.totalGames}</strong></li>
+        <li>Total de comentários: <strong>${stats.totalComments}</strong></li>
+        <li>Jogo mais comentado: <strong>${stats.mostCommentedGame || "Nenhum"}</strong></li>
+      </ul>
+
+      <h3>📶 Comentários por Jogo</h3>
+<div class="bar-chart">
+  ${Object.entries(stats.commentCountPerGame).map(([game, count]) => `
+    <div class="bar-item">
+      <span>${game} (${count})</span>
+      <div class="bar" style="width: ${count * 20}px;"></div>
+    </div>
+  `).join("")}
+</div>
+
+<h3>🏆 Usuários mais ativos</h3>
+<ol>
+  ${Object.entries(stats.commentCountPerUser)
+    .sort((a, b) => b[1] - a[1])
+    .map(([user, count]) => `<li><strong>${user}</strong>: ${count} comentários</li>`)
+    .join("")}
+</ol>
+
+
+      <h2>Gestão de Jogos</h2>
+      <input id="newGame" placeholder="Novo jogo" />
+      <button onclick="addGame()">Cadastrar</button>
+      <ul>${gameList}</ul>
+
+      <h2>Usuários Registrados</h2>
+      <ul>${userList}</ul>
+
+      <h2>Moderação de Comentários</h2>
+      <ul>${commentsList}</ul>
+
+      <div class="reset-btn">
+        
+      </div>
+    </div>
+  `;
+}
+
+
+
+
+      const history = currentUser.history?.map(h => `<li>${h}</li>`).join("") || "<li>Nenhum jogo visitado</li>";
+
+      app.innerHTML = `
+        <img src="logo.png" class="logo" alt="Logo Game Empire">
+        <h1>Bem-vindo, ${currentUser.displayName || currentUser.username}</h1>
+        
+
+        <h2>Pesquisar Jogos</h2>
+        <input id="search" oninput="renderApp()" placeholder="Digite o nome do jogo" value="${searchValue}" />
+
+        <h2>Lista de Jogos</h2>
+        <ul>${gameList}</ul>
+
+        <p>Total de jogos: ${games.length}</p>
+
+        ${adminSection}
+
+        <div class="profile-section">
+          <h2>Histórico de Visitas</h2>
+          <ul>${history}</ul>
+
+
+        <div class="profile-section">
+          <h2>👤 Meu Perfil</h2>
+          <p><strong>Usuário:</strong> ${currentUser.displayName}</p>
+          <button onclick="updateDisplayName()">Alterar Nome</button>
+          <button onclick="changeTheme()">Alternar Tema (${currentUser.theme === "dark" ? "Claro" : "Escuro"})</button>
+        </div>
+
+       <!-- Botões realocados para o fim da página -->
+         <div class="profile-section">
+            <button onclick="logout()">Logout</button>
+            <button class="reset-btn" onclick="resetData()">Resetar Dados</button>
+          </div>
+
+      `;
+    }
+
+    function removeComment(username, game) {
+  const user = users.find(u => u.username === username);
+  if (user && user.comments && user.comments[game]) {
+    delete user.comments[game];
+    saveUsers();
+    renderApp();
+  }
+}
+
+function editGame(index) {
+  const currentName = games[index];
+  const span = document.getElementById(`gameName-${index}`);
+  span.innerHTML = `
+    <input id="editInput-${index}" value="${currentName}" />
+    <button onclick="saveGameEdit(${index})">Salvar</button>
+  `;
+}
+
+function saveGameEdit(index) {
+  const input = document.getElementById(`editInput-${index}`);
+  const newName = input.value.trim();
+  if (newName && !games.includes(newName)) {
+    const oldName = games[index];
+    games[index] = newName;
+
+    
+    users.forEach(user => {
+      if (user.comments && user.comments[oldName]) {
+        user.comments[newName] = user.comments[oldName];
+        delete user.comments[oldName];
+      }
+    });
+
+    saveGames();
+    saveUsers();
+    renderApp();
+  } else {
+    alert("Nome inválido ou já existe.");
+  }
+}
+
+function generateStats() {
+  const totalUsers = users.length;
+  const totalAdmins = users.filter(u => u.role === "admin").length;
+  const totalRegulars = totalUsers - totalAdmins;
+  const totalGames = games.length;
+
+  let totalComments = 0;
+  const commentCountPerGame = {};
+  const commentCountPerUser = {};
+
+  users.forEach(u => {
+    const userComments = u.comments || {};
+    const commentEntries = Object.entries(userComments);
+    if (commentEntries.length > 0) {
+      commentCountPerUser[u.username] = commentEntries.length;
+    }
+    for (const [game, comment] of commentEntries) {
+      totalComments++;
+      if (!commentCountPerGame[game]) {
+        commentCountPerGame[game] = 0;
+      }
+      commentCountPerGame[game]++;
+    }
+  });
+
+  let mostCommentedGame = null;
+  let maxComments = 0;
+  for (const [game, count] of Object.entries(commentCountPerGame)) {
+    if (count > maxComments) {
+      maxComments = count;
+      mostCommentedGame = game;
+    }
+  }
+
+  return {
+    totalUsers,
+    totalAdmins,
+    totalRegulars,
+    totalGames,
+    totalComments,
+    mostCommentedGame,
+    commentCountPerGame,
+    commentCountPerUser
+  };
+}
+
+    renderLogin();
+  </script>
+</body>
+</html>
